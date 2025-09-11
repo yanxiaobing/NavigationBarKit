@@ -137,6 +137,10 @@ extension UIViewController {
     }
     
     @objc var nb_preferredStatusBarStyle: UIStatusBarStyle {
+        // 被忽略的类返回原实现
+        guard NavigationBarManager.shared.shouldApplyHook(for: self) else {
+            return nb_preferredStatusBarStyle
+        }
         return navigationBarStyle.statusBarStyle
     }
 }

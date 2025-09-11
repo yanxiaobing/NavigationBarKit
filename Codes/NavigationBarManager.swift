@@ -58,8 +58,30 @@ extension NavigationBarManager {
     
     /// 检查类是否需要Hook
     func shouldApplyHook(for viewController: UIViewController) -> Bool {
-        let vcClass = type(of: viewController)
-        return !ignoredClasses.contains { $0 == vcClass }
+        let vcClass: AnyClass = type(of: viewController)
+        let navClass: AnyClass? = viewController.navigationController.map { type(of: $0) }
+
+        // 忽略精确匹配或其子类；同时也支持忽略特定的 UINavigationController 类型
+        for ignored in ignoredClasses {
+            // VC 命中忽略
+            if vcClass == ignored { return false }
+            if let vcNS = vcClass as? NSObject.Type,
+               let ignoredNS = ignored as? NSObject.Type,
+               vcNS.isSubclass(of: ignoredNS) {
+                return false
+            }
+
+            // Nav 命中忽略
+            if let navClass = navClass {
+                if navClass == ignored { return false }
+                if let navNS = navClass as? NSObject.Type,
+                   let ignoredNS = ignored as? NSObject.Type,
+                   navNS.isSubclass(of: ignoredNS) {
+                    return false
+                }
+            }
+        }
+        return true
     }
     
     /// 应用导航栏样式
