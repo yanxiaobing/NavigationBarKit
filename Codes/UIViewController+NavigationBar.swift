@@ -8,6 +8,8 @@ private struct AssociatedKeys {
     static var rightNavigationButtons = "rightNavigationButtons"
     static var customBackAction = "customBackAction"
     static var isTransitioning = "isTransitioning"
+    static var buttonAction = "buttonAction"
+    static var buttonActionsMap = "buttonActionsMap"
 }
 
 // MARK: - UIViewController Extension
@@ -67,6 +69,16 @@ public extension UIViewController {
         }
     }
     
+    /// 按钮动作映射表
+    private var buttonActionsMap: [ObjectIdentifier: () -> Void] {
+        get {
+            return objc_getAssociatedObject(self, &AssociatedKeys.buttonActionsMap) as? [ObjectIdentifier: () -> Void] ?? [:]
+        }
+        set {
+            objc_setAssociatedObject(self, &AssociatedKeys.buttonActionsMap, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+    
     // MARK: - 便利方法
     
     /// 设置导航栏样式
@@ -102,6 +114,13 @@ public extension UIViewController {
     }
     
     internal func updateNavigationButtons() {
+        #if DEBUG
+        print("NavigationBarKit: 更新导航按钮 - 左侧按钮数量: \(leftNavigationButtons.count), 右侧按钮数量: \(rightNavigationButtons.count)")
+        #endif
+        
+        // 清理旧的按钮映射
+        buttonActionsMap.removeAll()
+        
         // 更新左侧按钮
         if leftNavigationButtons.isEmpty {
             setupAutoBackButtonIfNeeded()
@@ -141,11 +160,13 @@ public extension UIViewController {
         case .image(let image, let highlightedImage):
             let barButton = UIBarButtonItem(image: image, style: .plain, target: self, action: #selector(handleButtonTap(_:)))
             
-            // 存储action到barButton
-            objc_setAssociatedObject(barButton, "action", button.action, .OBJC_ASSOCIATION_COPY_NONATOMIC)
+            // 使用按钮的 ObjectIdentifier 作为 key 存储 action
+            let buttonId = ObjectIdentifier(barButton)
+            buttonActionsMap[buttonId] = button.action
             
             #if DEBUG
             print("NavigationBarKit: 创建图片按钮，target: \(String(describing: barButton.target)), action: \(String(describing: barButton.action))")
+            print("NavigationBarKit: 存储的闭包到映射表，key: \(buttonId)")
             #endif
             
             return barButton
@@ -154,16 +175,18 @@ public extension UIViewController {
             let barButton = UIBarButtonItem(title: title, style: .plain, target: self, action: #selector(handleButtonTap(_:)))
             barButton.tintColor = color
             
-            // 存储action到barButton
-            objc_setAssociatedObject(barButton, "action", button.action, .OBJC_ASSOCIATION_COPY_NONATOMIC)
+            // 使用按钮的 ObjectIdentifier 作为 key 存储 action
+            let buttonId = ObjectIdentifier(barButton)
+            buttonActionsMap[buttonId] = button.action
             
             return barButton
             
         case .system(let systemItem):
             let barButton = UIBarButtonItem(barButtonSystemItem: systemItem, target: self, action: #selector(handleButtonTap(_:)))
             
-            // 存储action到barButton
-            objc_setAssociatedObject(barButton, "action", button.action, .OBJC_ASSOCIATION_COPY_NONATOMIC)
+            // 使用按钮的 ObjectIdentifier 作为 key 存储 action
+            let buttonId = ObjectIdentifier(barButton)
+            buttonActionsMap[buttonId] = button.action
             
             return barButton
         }
@@ -172,9 +195,17 @@ public extension UIViewController {
     @objc private func handleButtonTap(_ sender: UIBarButtonItem) {
         #if DEBUG
         print("NavigationBarKit: 按钮被点击")
+        print("NavigationBarKit: 按钮对象: \(sender)")
         #endif
         
-        if let action = objc_getAssociatedObject(sender, "action") as? () -> Void {
+        let buttonId = ObjectIdentifier(sender)
+        
+        #if DEBUG
+        print("NavigationBarKit: 查找按钮 ID: \(buttonId)")
+        print("NavigationBarKit: 映射表内容: \(buttonActionsMap.keys)")
+        #endif
+        
+        if let action = buttonActionsMap[buttonId] {
             #if DEBUG
             print("NavigationBarKit: 执行按钮回调")
             #endif
