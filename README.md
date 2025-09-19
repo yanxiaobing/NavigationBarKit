@@ -78,10 +78,26 @@ class MyViewController: UIViewController {
         // 设置导航栏样式
         navigationBarStyle = .dark
         
-        // 添加右侧按钮
+        // 方式一：使用便利方法添加按钮
         addRightButton(.text("保存", color: .white) {
             print("保存按钮被点击")
         })
+        
+        // 方式二：直接设置按钮数组（推荐）
+        leftNavigationButtons = [.image(UIImage(named: "back_icon")!) {
+            print("返回按钮被点击")
+            self.navigationController?.popViewController(animated: true)
+        }]
+        
+        // 方式三：设置多个按钮
+        rightNavigationButtons = [
+            .text("取消") { 
+                print("取消") 
+            },
+            .text("保存") { 
+                print("保存") 
+            }
+        ]
         
         // 自定义返回按钮事件
         setBackAction {
@@ -151,7 +167,31 @@ let buttons = [
     NavigationBarButton.text("保存") { print("保存") }
 ]
 
+// 方法一：使用 NavigationBarKit
 NavigationBarKit.setButtons(buttons, position: .right, for: self)
+
+// 方法二：直接在 ViewController 中设置
+setRightButtons(buttons)
+
+// 方法三：直接赋值
+rightNavigationButtons = buttons
+```
+
+#### 按钮管理
+
+```swift
+// 清除按钮
+clearLeftButtons()
+clearRightButtons()
+
+// 添加单个按钮
+addLeftButton(.text("菜单") { print("菜单") })
+addRightButton(.text("更多") { print("更多") })
+
+// 设置按钮数组
+setLeftButtons([
+    .text("取消") { print("取消") }
+])
 ```
 
 ### 加载指示器
@@ -228,15 +268,25 @@ public struct NavigationBarButton {
 
 ```swift
 public extension UIViewController {
+    // 属性
     var navigationBarStyle: NavigationBarStyle { get set }
     var leftNavigationButtons: [NavigationBarButton] { get set }
     var rightNavigationButtons: [NavigationBarButton] { get set }
     var customBackAction: (() -> Void)? { get set }
     
+    // 基本方法
     func setNavigationBarStyle(_ style: NavigationBarStyle)
+    func setBackAction(_ action: @escaping () -> Void)
+    
+    // 按钮管理方法
     func addLeftButton(_ button: NavigationBarButton)
     func addRightButton(_ button: NavigationBarButton)
-    func setBackAction(_ action: @escaping () -> Void)
+    func setLeftButtons(_ buttons: [NavigationBarButton])
+    func setRightButtons(_ buttons: [NavigationBarButton])
+    func clearLeftButtons()
+    func clearRightButtons()
+    
+    // 加载指示器
     func showNavigationBarLoading(config: LoadingIndicatorConfig)
     func hideNavigationBarLoading()
 }
@@ -253,6 +303,86 @@ public extension UIViewController {
 | `qs_navBarTintColor` | `navigationBarStyle.buttonTintColor` |
 | `qs_statusBarStyle` | `navigationBarStyle.statusBarStyle` |
 | `qs_navBarShadowImageHidden` | `navigationBarStyle.shadowHidden` |
+
+## 故障排除
+
+### 按钮不显示的问题
+
+如果导航栏按钮没有显示，请检查以下几点：
+
+1. **确保在正确的时机设置按钮**
+   ```swift
+   override func viewDidLoad() {
+       super.viewDidLoad()
+       
+       // ✅ 正确：在 viewDidLoad 中设置
+       addRightButton(.text("保存") {
+           print("保存")
+       })
+   }
+   ```
+
+2. **检查是否被忽略类列表包含**
+   ```swift
+   // 确保当前 ViewController 没有被忽略
+   print("shouldApplyHook: \(NavigationBarManager.shared.shouldApplyHook(for: self))")
+   ```
+
+3. **启用调试日志**
+   在 Debug 模式下，库会打印按钮设置的日志信息，帮助排查问题。
+
+4. **手动触发更新**
+   ```swift
+   // 如果按钮仍然不显示，可以手动触发更新
+   DispatchQueue.main.async {
+       self.updateNavigationButtons()
+   }
+   ```
+
+### 按钮点击事件不响应的问题
+
+如果按钮显示了但点击没有反应，请检查：
+
+1. **确保闭包语法正确**
+   ```swift
+   // ✅ 正确的写法
+   leftNavigationButtons = [.image(UIImage(named: "back_icon")!) {
+       print("返回按钮被点击")
+       self.navigationController?.popViewController(animated: true)
+   }]
+   
+   // ❌ 错误的写法 - 缺少闭包
+   leftNavigationButtons = [.image(UIImage(named: "back_icon")!)]
+   ```
+
+2. **检查调试日志**
+   在 Debug 模式下，点击按钮会打印日志：
+   ```
+   NavigationBarKit: 按钮被点击
+   NavigationBarKit: 执行按钮回调
+   ```
+
+3. **确保图片资源存在**
+   ```swift
+   // 检查图片是否存在
+   guard let image = UIImage(named: "back_icon") else {
+       print("图片资源不存在")
+       return
+   }
+   ```
+
+### 样式不生效的问题
+
+1. **确保导航栏存在**
+   ```swift
+   guard navigationController != nil else {
+       print("NavigationController 为 nil")
+       return
+   }
+   ```
+
+2. **检查是否在转场过程中**
+   转场过程中样式更新会被忽略，等待转场完成后再设置。
 
 ## 系统要求
 

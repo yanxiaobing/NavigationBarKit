@@ -139,12 +139,14 @@ public extension UIViewController {
     private func createBarButtonItem(from button: NavigationBarButton) -> UIBarButtonItem {
         switch button.style {
         case .image(let image, let highlightedImage):
-            let barButton = UIBarButtonItem(image: image, style: .plain, target: nil, action: nil)
-            barButton.action = #selector(handleButtonTap(_:))
-            barButton.target = self
+            let barButton = UIBarButtonItem(image: image, style: .plain, target: self, action: #selector(handleButtonTap(_:)))
             
             // 存储action到barButton
             objc_setAssociatedObject(barButton, "action", button.action, .OBJC_ASSOCIATION_COPY_NONATOMIC)
+            
+            #if DEBUG
+            print("NavigationBarKit: 创建图片按钮，target: \(String(describing: barButton.target)), action: \(String(describing: barButton.action))")
+            #endif
             
             return barButton
             
@@ -168,8 +170,19 @@ public extension UIViewController {
     }
     
     @objc private func handleButtonTap(_ sender: UIBarButtonItem) {
+        #if DEBUG
+        print("NavigationBarKit: 按钮被点击")
+        #endif
+        
         if let action = objc_getAssociatedObject(sender, "action") as? () -> Void {
+            #if DEBUG
+            print("NavigationBarKit: 执行按钮回调")
+            #endif
             action()
+        } else {
+            #if DEBUG
+            print("NavigationBarKit: 未找到按钮回调")
+            #endif
         }
     }
 }
