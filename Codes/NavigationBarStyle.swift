@@ -3,33 +3,33 @@ import UIKit
 /// 导航栏样式配置
 public struct NavigationBarStyle {
     /// 背景颜色
-    public let backgroundColor: UIColor
+    public var backgroundColor: UIColor
     
     /// 背景图片（优先级高于背景颜色）
-    public let backgroundImage: UIImage?
+    public var backgroundImage: UIImage?
     
     /// 背景透明度
-    public let backgroundAlpha: CGFloat
+    public var backgroundAlpha: CGFloat
     
     /// 标题颜色
-    public let titleColor: UIColor
+    public var titleColor: UIColor
     
     /// 标题字体
-    public let titleFont: UIFont
+    public var titleFont: UIFont
     
     /// 按钮tint颜色
-    public let buttonTintColor: UIColor
+    public var buttonTintColor: UIColor
     
     /// 状态栏样式
-    public let statusBarStyle: UIStatusBarStyle
+    public var statusBarStyle: UIStatusBarStyle
     
     /// 是否隐藏底部阴影线
-    public let shadowHidden: Bool
+    public var shadowHidden: Bool
     
     /// 是否隐藏导航栏
-    public let navigationBarHidden: Bool
+    public var navigationBarHidden: Bool
     
-    public let gestureBackClose: Bool
+    public var gestureBackClose: Bool
     
     public init(
         backgroundColor: UIColor = .white,
