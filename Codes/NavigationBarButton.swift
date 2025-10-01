@@ -36,7 +36,7 @@ public extension NavigationBarButton {
     
     /// 默认返回按钮
     static func back(action: @escaping () -> Void) -> NavigationBarButton {
-        let backImage = NavigationBarAssets.defaultBackImage
+        let backImage = UIImage(systemName: "chevron.left") ?? UIImage()
         return NavigationBarButton(style: .image(backImage), action: action)
     }
 }

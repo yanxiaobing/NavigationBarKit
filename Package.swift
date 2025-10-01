@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "NavigationBarKit",
     platforms: [
-        .iOS(.v11)
+        .iOS(.v14)
     ],
     products: [
         .library(
@@ -19,10 +19,7 @@ let package = Package(
         .target(
             name: "NavigationBarKit",
             dependencies: [],
-            path: "Codes",
-            resources: [
-                .process("../Assets")
-            ]
+            path: "Codes"
         ),
     ]
 )
