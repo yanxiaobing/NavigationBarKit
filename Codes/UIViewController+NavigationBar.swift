@@ -18,10 +18,20 @@ public extension UIViewController {
     /// 导航栏样式
     var navigationBarStyle: NavigationBarStyle {
         get {
-            return objc_getAssociatedObject(self, &AssociatedKeys.navigationBarStyle) as? NavigationBarStyle
-                ?? NavigationBarManager.shared.defaultStyle
+            if let style = objc_getAssociatedObject(self, &AssociatedKeys.navigationBarStyle) as? NavigationBarStyle {
+                return style
+            } else {
+                // 如果没有设置过，创建一个新的样式实例并绑定更新回调
+                let style = NavigationBarManager.shared.defaultStyle
+                self.navigationBarStyle = style
+                return style
+            }
         }
         set {
+            // 绑定更新回调，当样式的任何属性改变时自动应用
+            newValue.updateHandler = { [weak self] in
+                self?.applyNavigationBarStyleIfNeeded()
+            }
             objc_setAssociatedObject(self, &AssociatedKeys.navigationBarStyle, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
             applyNavigationBarStyleIfNeeded()
         }
