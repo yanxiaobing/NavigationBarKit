@@ -2,56 +2,54 @@ import UIKit
 
 /// 导航栏样式配置
 public class NavigationBarStyle {
-    /// 更新回调
+    /// 更新回调（会被合并触发）
     internal var updateHandler: (() -> Void)?
+    private var pendingUpdateWorkItem: DispatchWorkItem?
     
     /// 背景颜色
-    public var backgroundColor: UIColor {
-        didSet { updateHandler?() }
-    }
+    public var backgroundColor: UIColor { didSet { scheduleUpdate() } }
     
     /// 背景图片（优先级高于背景颜色）
-    public var backgroundImage: UIImage? {
-        didSet { updateHandler?() }
-    }
+    public var backgroundImage: UIImage? { didSet { scheduleUpdate() } }
     
     /// 背景透明度
-    public var backgroundAlpha: CGFloat {
-        didSet { updateHandler?() }
-    }
+    public var backgroundAlpha: CGFloat { didSet { scheduleUpdate() } }
     
     /// 标题颜色
-    public var titleColor: UIColor {
-        didSet { updateHandler?() }
-    }
+    public var titleColor: UIColor { didSet { scheduleUpdate() } }
     
     /// 标题字体
-    public var titleFont: UIFont {
-        didSet { updateHandler?() }
-    }
+    public var titleFont: UIFont { didSet { scheduleUpdate() } }
     
     /// 按钮tint颜色
-    public var buttonTintColor: UIColor {
-        didSet { updateHandler?() }
-    }
+    public var buttonTintColor: UIColor { didSet { scheduleUpdate() } }
     
     /// 状态栏样式
-    public var statusBarStyle: UIStatusBarStyle {
-        didSet { updateHandler?() }
-    }
+    public var statusBarStyle: UIStatusBarStyle { didSet { scheduleUpdate() } }
     
     /// 是否隐藏底部阴影线
-    public var shadowHidden: Bool {
-        didSet { updateHandler?() }
-    }
+    public var shadowHidden: Bool { didSet { scheduleUpdate() } }
     
     /// 是否隐藏导航栏
-    public var navigationBarHidden: Bool {
-        didSet { updateHandler?() }
-    }
+    public var navigationBarHidden: Bool { didSet { scheduleUpdate() } }
     
-    public var gestureBackClose: Bool {
-        didSet { updateHandler?() }
+    public var gestureBackClose: Bool { didSet { scheduleUpdate() } }
+
+    /// 提供一次性的批量更新能力
+    public func performBatchUpdates(_ updates: (NavigationBarStyle) -> Void) {
+        let previousWorkItem = pendingUpdateWorkItem
+        pendingUpdateWorkItem = nil
+        updates(self)
+        scheduleUpdate()
+        // 恢复为普通节流（无需恢复 previousWorkItem）
+    }
+
+    private func scheduleUpdate() {
+        // 合并 16ms 内的多次改动，避免频繁刷新
+        pendingUpdateWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in self?.updateHandler?() }
+        pendingUpdateWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.016, execute: workItem)
     }
     
     public init(

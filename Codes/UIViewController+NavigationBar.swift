@@ -28,10 +28,8 @@ public extension UIViewController {
             }
         }
         set {
-            // 绑定更新回调，当样式的任何属性改变时自动应用
-            newValue.updateHandler = { [weak self] in
-                self?.applyNavigationBarStyleIfNeeded()
-            }
+            // 绑定更新回调，当样式的任何属性改变时自动应用（合并节流已在样式层实现）
+            newValue.updateHandler = { [weak self] in self?.applyNavigationBarStyleIfNeeded() }
             objc_setAssociatedObject(self, &AssociatedKeys.navigationBarStyle, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
             applyNavigationBarStyleIfNeeded()
         }

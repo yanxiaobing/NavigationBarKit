@@ -6,8 +6,10 @@ public final class NavigationBarManager {
     /// 单例
     public static let shared = NavigationBarManager()
     
-    /// 全局默认样式
-    public var defaultStyle: NavigationBarStyle = .default
+    /// 全局默认样式提供者（每次调用返回新实例）
+    public var defaultStyleProvider: () -> NavigationBarStyle = { .default }
+    /// 便捷访问：每次获取都会创建一个新样式，避免共享引用引发联动
+    public var defaultStyle: NavigationBarStyle { defaultStyleProvider() }
     
     /// 是否启用自动返回按钮
     public var autoBackButtonEnabled: Bool = true
@@ -86,56 +88,45 @@ extension NavigationBarManager {
     
     /// 应用导航栏样式
     func applyStyle(_ style: NavigationBarStyle, to navigationController: UINavigationController, animated: Bool = true) {
-        let navigationBar = navigationController.navigationBar
-        
-        // 设置背景
-        if let backgroundImage = style.backgroundImage {
-            navigationBar.setBackgroundImage(backgroundImage, for: .default)
-        } else {
-            navigationBar.setBackgroundImage(nil, for: .default)
-            navigationBar.barTintColor = style.backgroundColor
+        // 主线程保证
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { [weak navigationController] in
+                if let nav = navigationController {
+                    self.applyStyle(style, to: nav, animated: animated)
+                }
+            }
+            return
         }
-        
-        // 设置透明度
-        navigationBar.alpha = style.backgroundAlpha
-        
-        // 设置标题样式
-        navigationBar.titleTextAttributes = [
+
+        let navigationBar = navigationController.navigationBar
+
+        // 统一使用 UINavigationBarAppearance（iOS 13+ 可用；最低 iOS 14）
+        let appearance = UINavigationBarAppearance()
+        if let backgroundImage = style.backgroundImage {
+            appearance.backgroundImage = backgroundImage
+        } else {
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = style.backgroundColor
+        }
+
+        appearance.titleTextAttributes = [
             .foregroundColor: style.titleColor,
             .font: style.titleFont
         ]
-        
-        // 设置按钮颜色
-        navigationBar.tintColor = style.buttonTintColor
-        
-        // 设置阴影线
-        navigationBar.shadowImage = style.shadowHidden ? UIImage() : nil
-        
-        // 设置导航栏隐藏状态
-        navigationController.setNavigationBarHidden(style.navigationBarHidden, animated: animated)
-        
-        // iOS 15+ 适配
-        if #available(iOS 15.0, *) {
-            let appearance = UINavigationBarAppearance()
-            if let backgroundImage = style.backgroundImage {
-                appearance.backgroundImage = backgroundImage
-            } else {
-                appearance.configureWithOpaqueBackground()
-                appearance.backgroundColor = style.backgroundColor
-            }
-            
-            appearance.titleTextAttributes = [
-                .foregroundColor: style.titleColor,
-                .font: style.titleFont
-            ]
-            
-            if style.shadowHidden {
-                appearance.shadowImage = UIImage()
-                appearance.shadowColor = nil
-            }
-            
-            navigationBar.standardAppearance = appearance
-            navigationBar.scrollEdgeAppearance = appearance
+
+        if style.shadowHidden {
+            appearance.shadowImage = UIImage()
+            appearance.shadowColor = nil
         }
+
+        navigationBar.standardAppearance = appearance
+        navigationBar.scrollEdgeAppearance = appearance
+
+        // 仍然保留透明度与 tint 等直接属性
+        navigationBar.alpha = style.backgroundAlpha
+        navigationBar.tintColor = style.buttonTintColor
+
+        // 隐藏或显示导航栏
+        navigationController.setNavigationBarHidden(style.navigationBarHidden, animated: animated)
     }
 }

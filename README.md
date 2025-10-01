@@ -12,7 +12,7 @@
 - ✅ 丰富的样式预设
 - ✅ 支持自定义按钮和事件
 - ✅ 内置加载指示器
-- ✅ iOS 11+ 支持
+- ✅ iOS 14+ 支持
 
 ## 安装
 
@@ -222,7 +222,16 @@ NavigationBarKit.addIgnoredClass(SomeThirdPartyViewController.self)
 #### 全局默认样式
 
 ```swift
-// 设置全局默认样式
+// 设置全局默认样式工厂（推荐）
+NavigationBarManager.shared.defaultStyleProvider = {
+    NavigationBarStyle(
+        backgroundColor: .systemBackground,
+        titleColor: .label,
+        buttonTintColor: .systemBlue
+    )
+}
+
+// 或直接设置默认样式（会创建新实例）
 NavigationBarManager.shared.defaultStyle = NavigationBarStyle(
     backgroundColor: .systemBackground,
     titleColor: .label,
@@ -230,23 +239,149 @@ NavigationBarManager.shared.defaultStyle = NavigationBarStyle(
 )
 ```
 
+## 最佳实践
+
+### 1. 批量更新样式
+
+当需要同时修改多个样式属性时，使用 `performBatchUpdates` 避免频繁刷新：
+
+```swift
+// ✅ 推荐：批量更新，只触发一次应用
+navigationBarStyle.performBatchUpdates { style in
+    style.navigationBarHidden = true
+    style.titleColor = .white
+    style.buttonTintColor = .white
+    style.shadowHidden = true
+}
+
+// ❌ 不推荐：多次单独修改，会触发多次应用
+navigationBarStyle.navigationBarHidden = true
+navigationBarStyle.titleColor = .white
+navigationBarStyle.buttonTintColor = .white
+```
+
+### 2. 动态样式调整
+
+利用引用语义，可以动态调整样式而无需重新创建：
+
+```swift
+override func viewDidLoad() {
+    super.viewDidLoad()
+    
+    // 初始设置
+    navigationBarStyle = NavigationBarStyle(
+        backgroundColor: .white,
+        navigationBarHidden: false
+    )
+}
+
+func hideNavigationBarWhenNeeded() {
+    // ✅ 直接修改，自动应用
+    navigationBarStyle.navigationBarHidden = true
+}
+
+func changeTheme() {
+    // ✅ 动态切换主题
+    navigationBarStyle.backgroundColor = .black
+    navigationBarStyle.titleColor = .white
+    navigationBarStyle.buttonTintColor = .white
+}
+```
+
+### 3. 线程安全
+
+所有样式更新都会自动在主线程执行，无需手动处理：
+
+```swift
+// ✅ 安全：后台线程调用也会自动切换到主线程
+DispatchQueue.global().async {
+    self.navigationBarStyle.backgroundColor = .red
+}
+
+// ✅ 推荐：直接在主线程调用
+navigationBarStyle.backgroundColor = .red
+```
+
+### 4. 内存安全
+
+在按钮回调中使用 `[weak self]` 避免循环引用：
+
+```swift
+// ✅ 推荐：使用 weak self
+addRightButton(.text("保存") { [weak self] in
+    self?.saveData()
+})
+
+// ❌ 避免：强引用可能导致内存泄漏
+addRightButton(.text("保存") {
+    self.saveData() // 可能造成循环引用
+})
+```
+
+### 5. 样式继承
+
+每个 ViewController 使用独立的样式实例：
+
+```swift
+// ✅ 推荐：每个 VC 使用独立样式
+class FirstViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        navigationBarStyle = NavigationBarStyle.dark
+    }
+}
+
+class SecondViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        navigationBarStyle = NavigationBarStyle.transparent
+    }
+}
+```
+
+### 6. 性能优化
+
+- 使用批量更新减少刷新次数
+- 避免在 `viewWillAppear` 中频繁修改样式
+- 利用 16ms 合并节流机制
+
+```swift
+// ✅ 推荐：在 viewDidLoad 中设置初始样式
+override func viewDidLoad() {
+    super.viewDidLoad()
+    navigationBarStyle = .dark
+}
+
+// ✅ 推荐：批量更新
+func updateUI() {
+    navigationBarStyle.performBatchUpdates { style in
+        style.titleColor = .white
+        style.buttonTintColor = .white
+    }
+}
+```
+
 ## API 参考
 
 ### NavigationBarStyle
 
-导航栏样式配置结构体：
+导航栏样式配置类：
 
 ```swift
-public struct NavigationBarStyle {
-    public let backgroundColor: UIColor
-    public let backgroundImage: UIImage?
-    public let backgroundAlpha: CGFloat
-    public let titleColor: UIColor
-    public let titleFont: UIFont
-    public let buttonTintColor: UIColor
-    public let statusBarStyle: UIStatusBarStyle
-    public let shadowHidden: Bool
-    public let navigationBarHidden: Bool
+public class NavigationBarStyle {
+    public var backgroundColor: UIColor
+    public var backgroundImage: UIImage?
+    public var backgroundAlpha: CGFloat
+    public var titleColor: UIColor
+    public var titleFont: UIFont
+    public var buttonTintColor: UIColor
+    public var statusBarStyle: UIStatusBarStyle
+    public var shadowHidden: Bool
+    public var navigationBarHidden: Bool
+    public var gestureBackClose: Bool
+    
+    // 批量更新方法
+    public func performBatchUpdates(_ updates: (NavigationBarStyle) -> Void)
 }
 ```
 
@@ -386,7 +521,7 @@ public extension UIViewController {
 
 ## 系统要求
 
-- iOS 11.0+
+- iOS 14.0+
 - Xcode 12.0+
 - Swift 5.5+
 
