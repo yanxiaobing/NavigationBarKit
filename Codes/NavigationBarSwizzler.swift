@@ -115,6 +115,16 @@ extension UIViewController {
         
         isTransitioning = false
         updateNavigationButtons()
+        // 与系统转场同步：在转场协调器中应用样式，包含交互式返回手势
+        if let nav = navigationController, let coordinator = transitionCoordinator {
+            coordinator.animate(alongsideTransition: { [weak self] _ in
+                guard let self = self else { return }
+                NavigationBarManager.shared.applyStyle(self.navigationBarStyle, to: nav, animated: true)
+            }, completion: nil)
+        } else {
+            // 无转场时立即应用
+            applyNavigationBarStyleIfNeeded()
+        }
     }
     
     @objc func nb_viewDidAppear(_ animated: Bool) {

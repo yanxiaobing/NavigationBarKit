@@ -12,12 +12,10 @@ public final class NavigationBarKit {
     ///   - autoBackButton: 是否启用自动返回按钮
     ///   - smoothTransition: 是否启用平滑过渡动画
     public static func initialize(
-        defaultStyle: NavigationBarStyle = .default,
         autoBackButton: Bool = true,
         smoothTransition: Bool = true
     ) {
         let manager = NavigationBarManager.shared
-        manager.defaultStyle = defaultStyle
         manager.autoBackButtonEnabled = autoBackButton
         manager.smoothTransitionEnabled = smoothTransition
         

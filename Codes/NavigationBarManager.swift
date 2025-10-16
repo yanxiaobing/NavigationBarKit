@@ -128,5 +128,12 @@ extension NavigationBarManager {
 
         // 隐藏或显示导航栏
         navigationController.setNavigationBarHidden(style.navigationBarHidden, animated: animated)
+
+        // 返回侧滑手势开关：当需要禁止时，直接关闭手势识别器
+        if let popGesture = navigationController.interactivePopGestureRecognizer {
+            // 根控制器默认不可侧滑，保持系统行为；其余根据样式控制
+            let isRoot = navigationController.viewControllers.first === navigationController.topViewController
+            popGesture.isEnabled = !style.gestureBackClose && !isRoot
+        }
     }
 }
